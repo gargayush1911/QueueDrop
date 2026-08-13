@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	models "queuedrop/Models"
 	"queuedrop/database"
+	"queuedrop/models"
 	"time"
 
 	"queuedrop/cache"
@@ -42,8 +42,13 @@ func StartWorker() {
 }
 
 func processPurchase(body []byte) {
+	log.Println("worker received message:", string(body)) // ADD THIS
 	var req Purchaserequest
-	json.Unmarshal(body, &req)
+	if err := json.Unmarshal(body, &req); err != nil {
+		log.Println("failed to unmarshal message:", err) // ADD THIS
+		return
+	}
+	log.Println("parsed request:", req) // ADD THIS
 
 	stockkey := fmt.Sprintf("event:%s:stock", req.EventID)
 
@@ -53,6 +58,7 @@ func processPurchase(body []byte) {
 		log.Println("redis decr failed:", err)
 		return
 	}
+	log.Println("stock after decrement:", remaining) // ADD THIS
 
 	status := "confirmed"
 	if remaining < 0 {

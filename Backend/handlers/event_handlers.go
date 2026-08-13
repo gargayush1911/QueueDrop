@@ -38,11 +38,11 @@ func CreateEvent(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	eventID := result.InsertedID
-	stockKey := fmt.Sprintf("event:%v:stock", eventID)
+	eventID := result.InsertedID.(bson.ObjectID)
+	stockKey := fmt.Sprintf("event:%s:stock", eventID.Hex())
 	cache.RedisClient.Set(cache.Ctx, stockKey, event.TotalTickets, 0)
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"inserted_id": eventID})
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"inserted_id": eventID.Hex()})
 }
 
 func GetEvents(c *fiber.Ctx) error {
@@ -106,10 +106,10 @@ func JoinQueue(c *fiber.Ctx) error {
 	body, _ := json.Marshal(request)
 
 	err := queue.Channel.Publish(
-		"",                // exchange (empty = default)
-		"purchased_queue", // routing key = queue name
-		false,             // mandatory
-		false,             // immediate
+		"",               // exchange (empty = default)
+		"purchase_queue", // routing key = queue name
+		false,            // mandatory
+		false,            // immediate
 		amqp.Publishing{
 			ContentType: "application/json",
 			Body:        body,

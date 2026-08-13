@@ -22,8 +22,19 @@ func AuthRequired(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid or Expired token"})
 	}
 
-	claims := token.Claims.(jwt.MapClaims)
-	c.Locals("username", claims["username"])
-	c.Locals("role", claims["role"]) // add this
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token claims"})
+	}
+	username, ok := claims["username"].(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "username missing from the token"})
+	}
+	role, ok := claims["role"].(string)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "role missing from the token"})
+	}
+	c.Locals("username", username)
+	c.Locals("role", role)
 	return c.Next()
 }
