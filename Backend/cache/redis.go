@@ -2,6 +2,7 @@ package cache
 
 import (
 	"context"
+	"os"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -9,8 +10,15 @@ import (
 var RedisClient *redis.Client
 var Ctx = context.Background()
 
-func InitRedis() {
+func InitRedis() error {
+	addr := os.Getenv("REDIS_ADDR")
+	if addr == "" {
+		addr = "localhost:6379" // default address if not set
+	}
+
 	RedisClient = redis.NewClient(&redis.Options{
-		Addr: "localhost:6380",
+		Addr: addr,
 	})
+
+	return RedisClient.Ping(Ctx).Err()
 }

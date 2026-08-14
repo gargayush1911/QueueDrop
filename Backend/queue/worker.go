@@ -19,11 +19,28 @@ type Purchaserequest struct {
 	Username string `json:"username"`
 }
 
+const reserveTicketScript = `
+local stock = redis.call("GET", KEYS[1])
+if not stock then 
+return -2
+end
+
+if tonumber(stock) <= 0 then
+return -1
+end
+
+return redis.call("DECR", KEYS[1])
+`
+
 func StartWorker() {
+	if Channel == nil {
+		log.Fatal("RabbitMQ channel is not initialized")
+	}
+
 	msgs, err := Channel.Consume(
-		"purchase_queue",
+		PurchaseQueue,
 		"",    // consumer tag (auto-generated)
-		true,  // auto-ack — we'll discuss the tradeoff below
+		false,  // auto-ack — we'll discuss the tradeoff below
 		false, // exclusive
 		false, // no-local
 		false, // no-wait
@@ -35,22 +52,61 @@ func StartWorker() {
 
 	go func() {
 		for msg := range msgs { // blocks here, processes one message at a time as they arrive
-			processPurchase(msg.Body)
+			if err:= processPurchase(msg.Body);err!=nil{
+				log.Println("purchase processing failed: ",err)
+				continue
+			}
+
+			if err:= msg.Ack(false); err != nil {
+				log.Println("failed to ack message: ", err)
+			}
 		}
 	}()
 	log.Println("worker started, listening for purchase request")
 }
 
-func processPurchase(body []byte) {
-	log.Println("worker received message:", string(body)) // ADD THIS
+func processPurchase(body []byte) error {
+	log.Println("worker received message:", string(body))
+
 	var req Purchaserequest
 	if err := json.Unmarshal(body, &req); err != nil {
-		log.Println("failed to unmarshal message:", err) // ADD THIS
-		return
+		return fmt.Errorf("invalid purchase message : %w",err)
 	}
-	log.Println("parsed request:", req) // ADD THIS
+
+	if req.EventID == "" || req.Username == "" {
+		return fmt.Errorf("invalid purchase message: missing event_id or username")
+	}
+
+	eventID , err:= bson.ObjectIDFromHex(req.EventID)
+	if err != nil {
+		return fmt.Errorf("invalid event_id: %w", err)
+	}
+
+	ctx,cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var event models.Event
+	if err := database.EventsCollection.FindOne(ctx, bson.M{"_id": eventID}).Decode(&event); err != nil {
+		return fmt.Errorf("event not found: %w", err)
+	}
+
 
 	stockkey := fmt.Sprintf("event:%s:stock", req.EventID)
+
+	result,err:= cache.RedisClient.Eval(cache.Ctx,reserveTicketScript,[]string{stockkey},).Int64()
+	if err != nil {
+		log.Println("redis eval failed:", err)
+		return err
+	}
+
+	if result==-1{
+		order := models.Order{
+			EventID:   req.EventID,
+			Username:  req.Username,
+			Status:    "sold_out",
+			CreatedAt: time.Now(),
+		}
+	}
 
 	// atomic decrement — this is the safety guarantee against overselling
 	remaining, err := cache.RedisClient.Decr(cache.Ctx, stockkey).Result()

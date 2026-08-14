@@ -4,9 +4,8 @@ import "github.com/gofiber/fiber/v2"
 
 func RequiredRole(allowedRoles ...string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		roleVal := c.Locals("role")
-		role, ok := roleVal.(string)
-		if !ok {
+		role, ok := c.Locals("role").(string)
+		if !ok || role == "" {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "role not found on token"})
 		}
 
