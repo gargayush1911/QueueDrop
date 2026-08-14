@@ -9,6 +9,7 @@ import (
 	"queuedrop/queue"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
 )
 
@@ -22,6 +23,11 @@ func main() {
 	queue.StartWorker()
 
 	app := fiber.New()
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
+	}))
 
 	app.Post("/api/register", handlers.Register)
 	app.Post("/api/login", handlers.Login)

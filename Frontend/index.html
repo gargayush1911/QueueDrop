@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QueueDrop — Fair-queue ticket drops</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ===== Ticket-counter loading gate ===== -->
+<div id="boot-gate" class="boot-gate" aria-hidden="true">
+  <div class="boot-ticket">
+    <span class="boot-label">CONNECTING TO BOX OFFICE</span>
+    <span class="boot-dots"><span></span><span></span><span></span></span>
+  </div>
+</div>
+
+<!-- ===== Toasts ===== -->
+<div id="toast-rack" class="toast-rack" aria-live="polite"></div>
+
+<!-- ===== Header ===== -->
+<header class="site-head" id="site-head" hidden>
+  <div class="site-head-inner">
+    <a href="#" class="brand" data-action="go-home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="26" height="26">
+          <path d="M2 12a3 3 0 0 0 0 8v6h28v-6a3 3 0 0 1 0-8V6H2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          <path d="M12 6v20" stroke="currentColor" stroke-width="2" stroke-dasharray="2.5 3.5" stroke-linecap="round"/>
+        </svg>
+      </span>
+      QueueDrop
+    </a>
+
+    <nav class="head-nav">
+      <span class="stock-pill" id="server-pill" title="API connection">
+        <span class="dot" id="server-dot"></span>
+        <span id="server-label">checking box office…</span>
+      </span>
+    </nav>
+
+    <div class="head-user" id="head-user">
+      <button class="btn btn-ghost" id="btn-new-drop" hidden>+ New drop</button>
+      <div class="user-chip" id="user-chip" hidden>
+        <span class="user-role" id="user-role-badge"></span>
+        <span class="user-name" id="user-name-label"></span>
+      </div>
+      <button class="btn btn-line" id="btn-logout" hidden>Sign out</button>
+    </div>
+  </div>
+</header>
+
+<main id="app-root">
+
+  <!-- ===== AUTH VIEW ===== -->
+  <section id="view-auth" class="view view-auth">
+    <div class="auth-wrap">
+      <div class="auth-hero">
+        <p class="eyebrow">FAIR-QUEUE TICKETING</p>
+        <h1 class="hero-title">The drop starts<br>the second<br>you hit join.</h1>
+        <p class="hero-copy">
+          QueueDrop lines every request up in order the instant a drop opens, so tickets
+          go to whoever asked first — not whoever refreshed the fastest.
+        </p>
+        <ul class="hero-facts">
+          <li><strong>1</strong> queue per drop, first in line wins</li>
+          <li><strong>0</strong> oversold tickets — inventory is locked per request</li>
+          <li><strong>&lt;1s</strong> to join once you click</li>
+        </ul>
+      </div>
+
+      <div class="auth-card">
+        <div class="auth-tabs" role="tablist">
+          <button class="auth-tab is-active" data-tab="login" role="tab">Sign in</button>
+          <button class="auth-tab" data-tab="register" role="tab">Create account</button>
+        </div>
+
+        <!-- LOGIN -->
+        <form id="form-login" class="auth-form" novalidate>
+          <label class="field">
+            <span>Username</span>
+            <input type="text" name="username" autocomplete="username" required minlength="3" maxlength="30" />
+          </label>
+          <label class="field">
+            <span>Password</span>
+            <input type="password" name="password" autocomplete="current-password" required minlength="6" />
+          </label>
+          <p class="form-error" id="login-error" hidden></p>
+          <button type="submit" class="btn btn-primary btn-block">
+            <span class="btn-label">Sign in</span>
+          </button>
+        </form>
+
+        <!-- REGISTER -->
+        <form id="form-register" class="auth-form" hidden novalidate>
+          <label class="field">
+            <span>Username</span>
+            <input type="text" name="username" autocomplete="username" required minlength="3" maxlength="30" placeholder="3–30 characters" />
+          </label>
+          <label class="field">
+            <span>Password</span>
+            <input type="password" name="password" autocomplete="new-password" required minlength="6" placeholder="At least 6 characters" />
+          </label>
+
+          <fieldset class="role-picker">
+            <legend>How will you use QueueDrop?</legend>
+            <label class="role-option is-active">
+              <input type="radio" name="role" value="user" checked />
+              <span class="role-icon" aria-hidden="true">🎟️</span>
+              <span class="role-copy">
+                <strong>I attend drops</strong>
+                <small>Join queues and claim tickets</small>
+              </span>
+            </label>
+            <label class="role-option">
+              <input type="radio" name="role" value="organizer" />
+              <span class="role-icon" aria-hidden="true">📣</span>
+              <span class="role-copy">
+                <strong>I run drops</strong>
+                <small>Create and manage ticket drops</small>
+              </span>
+            </label>
+          </fieldset>
+
+          <p class="form-error" id="register-error" hidden></p>
+          <button type="submit" class="btn btn-primary btn-block">
+            <span class="btn-label">Create account</span>
+          </button>
+        </form>
+
+        <p class="auth-switch-note">
+          <span id="note-login">New here? <button class="link-btn" data-tab="register">Create an account</button></span>
+          <span id="note-register" hidden>Already have one? <button class="link-btn" data-tab="login">Sign in</button></span>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== DROPS VIEW ===== -->
+  <section id="view-drops" class="view view-drops" hidden>
+
+    <div class="drops-toolbar">
+      <div>
+        <p class="eyebrow">LIVE DROPS</p>
+        <h2 class="section-title">Every drop on the board</h2>
+      </div>
+      <div class="toolbar-actions">
+        <label class="search-field">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input type="search" id="search-events" placeholder="Search drops or organizers" />
+        </label>
+        <button class="btn btn-primary" id="btn-new-drop-2" hidden>+ New drop</button>
+      </div>
+    </div>
+
+    <div id="events-empty" class="empty-state" hidden>
+      <div class="empty-ticket" aria-hidden="true">🎫</div>
+      <h3>No drops on the board yet</h3>
+      <p id="empty-copy">Check back soon — organizers are still setting up.</p>
+      <button class="btn btn-primary" id="btn-empty-create" hidden>Create the first drop</button>
+    </div>
+
+    <div id="events-grid" class="events-grid" hidden></div>
+  </section>
+
+</main>
+
+<!-- ===== Create / Edit Drop Modal ===== -->
+<div class="modal-overlay" id="modal-drop" hidden>
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="drop-modal-title">
+    <div class="modal-head">
+      <h3 id="drop-modal-title">New drop</h3>
+      <button class="modal-close" id="drop-modal-close" aria-label="Close">&times;</button>
+    </div>
+    <form id="form-drop" class="modal-form" novalidate>
+      <input type="hidden" name="eventId" value="" />
+      <label class="field">
+        <span>Drop name</span>
+        <input type="text" name="name" required placeholder="e.g. Midnight Sun — Main Floor" />
+      </label>
+      <label class="field">
+        <span>Total tickets</span>
+        <input type="number" name="total_tickets" min="1" step="1" required placeholder="e.g. 250" />
+      </label>
+      <p class="field-hint" id="drop-form-hint"></p>
+      <p class="form-error" id="drop-form-error" hidden></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-line" id="drop-modal-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="drop-modal-submit">
+          <span class="btn-label">Publish drop</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== Join Queue Result Modal ===== -->
+<div class="modal-overlay" id="modal-joined" hidden>
+  <div class="modal-panel modal-panel-narrow" role="dialog" aria-modal="true" aria-labelledby="joined-title">
+    <div class="joined-stub" id="joined-stub">
+      <div class="joined-icon" id="joined-icon">🎟️</div>
+      <h3 id="joined-title">You're in line</h3>
+      <p id="joined-copy"></p>
+      <div class="joined-meta">
+        <div><span>Drop</span><strong id="joined-event-name"></strong></div>
+        <div><span>Queued as</span><strong id="joined-username"></strong></div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-block" id="joined-close">Back to the board</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
