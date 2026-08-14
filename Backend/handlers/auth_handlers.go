@@ -18,6 +18,7 @@ import (
 type RegisterRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+	Role     string `json:"role"`
 }
 
 type LoginRequest struct {
@@ -49,6 +50,14 @@ func Register(c *fiber.Ctx) error {
 		)
 	}
 
+	if input.Role == "" {
+		input.Role = "user"
+	}
+
+	if input.Role != "user" && input.Role != "organizer" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "role must be 'user' or 'organizer'"})
+	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "could not hash password"})
@@ -56,7 +65,7 @@ func Register(c *fiber.Ctx) error {
 	user := models.Users{
 		Username: input.Username,
 		Password: string(hashedPassword),
-		Role:     "user", // default role
+		Role:     input.Role,
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

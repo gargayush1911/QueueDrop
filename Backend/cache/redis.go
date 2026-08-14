@@ -13,7 +13,7 @@ var Ctx = context.Background()
 func InitRedis() error {
 	addr := os.Getenv("REDIS_ADDR")
 	if addr == "" {
-		addr = "localhost:6379" // default address if not set
+		addr = "localhost:6380" // default address if not set
 	}
 
 	RedisClient = redis.NewClient(&redis.Options{

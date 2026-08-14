@@ -16,7 +16,7 @@ func AuthRequired(c *fiber.Ctx) error {
 	}
 
 	parts := strings.Fields(authHeader)
-	if len(parts) != 0 || !strings.EqualFold(parts[0], "Bearer") {
+	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid authorization header"})
 	}
 

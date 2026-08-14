@@ -22,7 +22,7 @@ func InitMongoDB() error {
 
 	uri := os.Getenv("MONGODB_URI")
 	if uri == "" {
-		uri = "mongodb://localhost:27017" // default URI if not set
+		uri = "mongodb://localhost:27018" // default URI if not set
 	}
 
 	clients, err := mongo.Connect(options.Client().ApplyURI(uri))
