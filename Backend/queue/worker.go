@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"queuedrop/cache"
+	"queuedrop/notify"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -106,6 +107,13 @@ func processPurchase(body []byte) error {
 	default:
 		status = "confirmed"
 	}
+
+	notification := map[string]string{
+		"event_id": req.EventID,
+		"status":   status,
+	}
+	notifBody, _ := json.Marshal(notification)
+	notify.SendToUser(req.Username, notifBody)
 
 	order := models.Order{
 		EventID:   eventID,

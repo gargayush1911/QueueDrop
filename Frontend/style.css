@@ -373,6 +373,9 @@ main{ max-width: 1180px; margin: 0 auto; padding: 0 28px 80px; }
 }
 
 /* ============================== Modals ============================== */
+[hidden]{
+  display: none !important;
+}
 .modal-overlay{
   position: fixed; inset:0; z-index: 80;
   background: rgba(10,12,24,0.72);

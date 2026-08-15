@@ -10,9 +10,11 @@ require (
 	github.com/redis/go-redis/v9 v9.22.0
 	go.mongodb.org/mongo-driver/v2 v2.8.0
 	golang.org/x/crypto v0.55.0
+
 )
 
 require (
+	github.com/gofiber/websocket/v2 v2.2.1 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
