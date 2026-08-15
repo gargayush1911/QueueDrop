@@ -413,6 +413,18 @@ main{ max-width: 1180px; margin: 0 auto; padding: 0 28px 80px; }
 .joined-icon{ font-size: 40px; margin-bottom: 8px; }
 .joined-stub h3{ font-family: var(--font-display); font-size: 26px; margin: 0 0 8px; color: var(--paper); font-weight:normal; }
 .joined-stub p{ font-size: 14px; color: var(--ink-text-dim); line-height:1.6; margin: 0 0 18px; }
+.joined-status{
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 18px;
+  text-align: center;
+}
+.joined-status-pending{ background: rgba(255,255,255,0.08); color: var(--ink-text-dim); }
+.joined-status-confirmed{ background: rgba(80, 200, 120, 0.15); color: #4ade80; }
+.joined-status-soldout{ background: rgba(220, 80, 80, 0.15); color: #f87171; }
 .joined-meta{
   display:flex; justify-content: space-between; gap: 10px;
   border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line);

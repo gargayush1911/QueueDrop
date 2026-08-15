@@ -68,6 +68,7 @@ const el = {
   joinedEventName: $("#joined-event-name"),
   joinedUsername: $("#joined-username"),
   joinedClose: $("#joined-close"),
+  joinedStatus: $("#joined-status"),
 
   toastRack: $("#toast-rack"),
 };
@@ -363,11 +364,44 @@ async function joinQueue(eventId, eventName, btn) {
     el.joinedUsername.textContent = data.username || state.user.username;
     el.joinedCopy.textContent =
       "Your spot is locked in the order it arrived. QueueDrop's worker allocates tickets first-come, first-served, so there's nothing more to do here.";
+    el.joinedStatus.textContent = "Checking your spot…";
+    el.joinedStatus.className = "joined-status joined-status-pending";
     openModal(el.modalJoined);
+    pollOrderStatus(eventId);
   } catch (err) {
     toast(err.message, "error");
   } finally {
     setButtonLoading(btn, false);
+  }
+}
+
+// Polls the worker's result for this event a few times, a second apart.
+// The purchase is processed asynchronously (via RabbitMQ), so it's
+// rarely instant — this gives it a few seconds to land before giving up.
+async function pollOrderStatus(eventId, attempt = 0) {
+  const maxAttempts = 8;
+  try {
+    const data = await api(`/api/events/${eventId}/status`, { auth: true });
+    if (data.status === "confirmed") {
+      el.joinedStatus.textContent = "🎉 Confirmed — you got a ticket!";
+      el.joinedStatus.className = "joined-status joined-status-confirmed";
+      return;
+    }
+    if (data.status === "sold_out") {
+      el.joinedStatus.textContent = "Sold out — no tickets left for you this time.";
+      el.joinedStatus.className = "joined-status joined-status-soldout";
+      return;
+    }
+    // still "pending" — try again shortly, unless we've hit the cap.
+    if (attempt < maxAttempts) {
+      setTimeout(() => pollOrderStatus(eventId, attempt + 1), 1000);
+    } else {
+      el.joinedStatus.textContent = "Still processing — check My Orders in a moment.";
+      el.joinedStatus.className = "joined-status joined-status-pending";
+    }
+  } catch (err) {
+    el.joinedStatus.textContent = "Couldn't check status — check My Orders instead.";
+    el.joinedStatus.className = "joined-status joined-status-pending";
   }
 }
 

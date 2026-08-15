@@ -45,6 +45,9 @@ func main() {
 
 	app.Post("/api/events/:id/queue", middleware.AuthRequired, handlers.JoinQueue)
 
+	app.Get("/api/orders/me", middleware.AuthRequired, handlers.GetMyOrders)
+	app.Get("/api/events/:id/status", middleware.AuthRequired, handlers.GetOrderStatus)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080" // default for local dev
