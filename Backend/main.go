@@ -11,6 +11,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/websocket/v2"
 	"github.com/joho/godotenv"
 )
 
@@ -47,6 +48,10 @@ func main() {
 
 	app.Get("/api/orders/me", middleware.AuthRequired, handlers.GetMyOrders)
 	app.Get("/api/events/:id/status", middleware.AuthRequired, handlers.GetOrderStatus)
+
+	// Real-time push: the worker calls notify.SendToUser() after every
+	// purchase, which writes to whichever connection is registered here.
+	app.Get("/ws/notifications", middleware.WSAuthRequired, websocket.New(handlers.HandleNotifications))
 
 	port := os.Getenv("PORT")
 	if port == "" {
