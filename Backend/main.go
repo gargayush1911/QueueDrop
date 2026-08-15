@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 	"queuedrop/cache"
 	"queuedrop/database"
 	"queuedrop/handlers"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/websocket/v2"
 	"github.com/joho/godotenv"
 )
 
@@ -44,7 +44,10 @@ func main() {
 		handlers.UpdateEvent)
 
 	app.Post("/api/events/:id/queue", middleware.AuthRequired, handlers.JoinQueue)
-	app.Get("/ws/notifications", middleware.WSAuthRequired, websocket.New(handlers.HandleNotifications))
 
-	log.Fatal(app.Listen(":8080"))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080" // default for local dev
+	}
+	log.Fatal(app.Listen(":" + port))
 }
