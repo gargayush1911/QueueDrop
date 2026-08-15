@@ -4,7 +4,7 @@
 // or via localStorage key "queuedrop_api_base".
 // ============================================================================
 
-const DEFAULT_API_BASE = "http://localhost:8080";
+const DEFAULT_API_BASE = "https://queuedrop-production-d25f.up.railway.app";
 const API_BASE = localStorage.getItem("queuedrop_api_base") || DEFAULT_API_BASE;
 
 const state = {
@@ -157,38 +157,7 @@ function toast(message, type = "default") {
     setTimeout(() => node.remove(), 220);
   }, 4200);
 }
-// ---------------------------------------------------------------------------
-// Live order notifications (WebSocket)
-// ---------------------------------------------------------------------------
-let notifSocket = null;
 
-function connectNotifications() {
-  if (!state.token) return;
-  if (notifSocket) notifSocket.close(); // avoid duplicate connections
-
-  const wsBase = API_BASE.replace(/^http/, "ws"); // http(s):// -> ws(s)://
-  notifSocket = new WebSocket(`${wsBase}/ws/notifications?token=${state.token}`);
-
-  notifSocket.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    if (data.status === "confirmed") {
-      toast("🎉 You got a ticket! Check your orders.", "success");
-    } else if (data.status === "sold_out") {
-      toast("😔 Sold out — you didn't get a ticket this time.", "error");
-    }
-  };
-
-  notifSocket.onclose = () => {
-    notifSocket = null;
-  };
-}
-
-function disconnectNotifications() {
-  if (notifSocket) {
-    notifSocket.close();
-    notifSocket = null;
-  }
-}
 // ---------------------------------------------------------------------------
 // View switching
 // ---------------------------------------------------------------------------
@@ -208,7 +177,6 @@ function renderAuthState() {
     el.userRoleBadge.textContent = state.user.role;
     el.userNameLabel.textContent = state.user.username;
     loadEvents();
-    connectNotifications(); 
   }
 }
 
@@ -293,7 +261,6 @@ $$(".role-option input").forEach((input) => {
 
 el.btnLogout.addEventListener("click", () => {
   clearSession();
-  disconnectNotifications(); 
   switchAuthTab("login");
   toast("Signed out.");
   renderAuthState();
